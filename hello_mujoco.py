@@ -1,57 +1,56 @@
 import mujoco
-import os
-import time
-import imageio.v3 as iio
-from PIL import Image
 import numpy as np
-from pathlib import Path
+import matplotlib.pyplot as plt
 
+model = mujoco.MjModel.from_xml_path("model/cyberrunner.xml")
+data = mujoco.MjData(model)
+renderer = mujoco.Renderer(model)
 
-# Load the MuJoCo model and create the simulation state.
-m = mujoco.MjModel.from_xml_path("/home/maxma/projects/hello_mujoco/model/cyberrunner.xml")
-d = mujoco.MjData(m)
-# Looks at current state and draws it as an image
-r = mujoco.Renderer(m)
+show = False
+step = 0
 
-# Capture frames at 30 FPS.
-fps = float(30)
-frame_num = 0
-capture = 1.0 / fps
+def create_display(m, d):
+    plt.ion()
+    fig, ax = plt.subplots()
+    
+    # Instead of recreating the plot every time, declare it once and update it in the loop.
+    renderer.update_scene(data, camera="fov_camera")
+    arr = renderer.render()
+    ax.set_axis_off()
+    image = ax.imshow(arr)
 
-output_dir= Path("captured_frames")
-os.makedirs(output_dir, exist_ok=True)
+    return fig, image, renderer
 
-while d.time < 60:
+def display(image, fig, arr):
+    # Pass in and update with new image array
+    image.set_data(arr)
+    # Render data into the internal buffer
+    fig.canvas.draw()
+    # Pause while loop to update GUI with changes in buffer
+    fig.canvas.flush_events()
 
-    # Dynamically read ctrlrange parameter values from xml
-    low = m.actuator_ctrlrange[:, 0]
-    high = m.actuator_ctrlrange[:, 1]
+if show:
+    fig, image, renderer = create_display(model, data)
 
+while True:
+    if step >= 100:
+        print(data.time)
+        step = 0
+    step += 1
+
+    # Dynamically read ctrlrange parameter values from specified in xml
+    low = model.actuator_ctrlrange[:, 0] # -4000
+    high = model.actuator_ctrlrange[:, 1] # 4000
+    
     # Apply random control values within each actuator's allowed range.
-    d.ctrl[:] = np.random.uniform(low, high, size=m.nu)
+    data.ctrl[:] = np.random.uniform(low, high, size=model.nu)
+    
+    mujoco.mj_step(model, data, nstep=16)
 
-    # Advance sim by one time step, defined in the xml
-    mujoco.mj_step(m, d)
+    renderer.update_scene(data, camera="fov_camera")
+    arr = renderer.render()
+    if show:
+        display(image, fig, arr)
 
     
-    time.sleep(capture)
-
-    # Render the current scene from the front camera and save it.
-    r.update_scene(d, camera="fov_camera")
-    arr = r.render()
-    image = Image.fromarray(arr)
-    path = output_dir / f"frame{frame_num}.png"
-    iio.imwrite(path, image)
-    frame_num += 1
-
-r.close()
-
-
     
-
-
-
-    
-
-
-
