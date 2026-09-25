@@ -6,7 +6,7 @@ import cv2
 
 model = mujoco.MjModel.from_xml_path("model/cyberrunner.xml")
 
-renderer = mujoco.Renderer(model, height=480, width=640)
+renderer = mujoco.Renderer(model, height=360, width=640)
 time = 0
 skip = 0
 fps = 55
