@@ -4,7 +4,9 @@ import numpy as np
 
 model = mujoco.MjModel.from_xml_path("model/cyberrunner.xml")
 data = mujoco.MjData(model)
-renderer = mujoco.Renderer(model) 
+#renderer = mujoco.Renderer(model, height=720, width=1280)
+# Scale down using same width to height ratio
+renderer = mujoco.Renderer(model, height=360, width=640)
 
 display = True
 
